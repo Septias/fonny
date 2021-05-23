@@ -22,7 +22,7 @@ impl Default for TreeBuilderConfig {
             tile_width: 1.0,
             tile_height: 2.0,
             trunk_ratio: 0.2,
-            leaf_padding_perc: 0.8
+            leaf_padding_perc: 0.8,
         }
     }
 }
@@ -88,13 +88,14 @@ impl TreeBuilder {
             ..Default::default()
         });
 
-        let trunk_height = config.tile_height * config.trunk_ratio;
+        let trunk_height = 1.0;
         let leaf_width = config.tile_width * config.leaf_padding_perc;
         let leaf_base = leaf_width;
         let tree_data = (0..models)
             .map(|size| {
-                let leafe_space = leaf_base + 
-                    (config.tile_height - trunk_height - leaf_base) * (size as f32 / models as f32);
+                let leafe_space = leaf_base
+                    + (config.tile_height - trunk_height - leaf_base)
+                        * (size as f32 / models as f32);
                 let leafes_mesh = meshes.add(Mesh::from(shape::Box::new(
                     leaf_width,
                     leafe_space,
@@ -141,5 +142,28 @@ impl TreeBuilder {
                 parent.spawn_bundle(self.tree_data[size as usize].0.clone());
                 parent.spawn_bundle(self.tree_data[size as usize].1.clone());
             });
+    }
+}
+
+pub mod generators {
+    pub struct CycleGenerator {
+        width: i32,
+        length: i32,
+        levels: i32
+    }
+
+    impl CycleGenerator {
+        pub fn compute(&self, x: i32, z: i32) -> f32 {
+            let max = ((self.width.pow(2) + self.length.pow(2)) as f32).sqrt();
+            let val = ((x.pow(2) + z.pow(2)) as f32).sqrt();
+            val / max * self.levels as f32
+        }
+        pub fn new(width: i32, length: i32, levels: i32) -> Self {
+            Self {
+                width,
+                length,
+                levels            
+            }
+        }
     }
 }

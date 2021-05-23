@@ -23,14 +23,18 @@ fn setup(
 ) {
     let tree_builder = TreeBuilderBuilder::new()
         .with_config(TreeBuilderConfig {
-            tile_height: 4.0,
+            tile_height: 20.0,
             ..Default::default()
         })
+        .with_models(20)
         .build(&mut meshes, &mut materials);
+    
+    let mapgen = map::generators::CycleGenerator::new(100, 100, 20);
 
     for x in -50..50 {
         for z in -50..50 {
             if x % 2 == 0 && z % 2 == 0 {
+                let size = mapgen.compute(x , z);
                 tree_builder.build_tree_at(
                     x as f32,
                     z as f32,
@@ -57,3 +61,4 @@ fn setup(
         ..Default::default()
     });
 }
+
