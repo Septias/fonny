@@ -1,35 +1,54 @@
+//! Everything related to map generation
 use bevy::prelude::*;
 
+/// A tile in the grid of tiles
 #[derive(Debug, Default)]
 struct Tile {
     x: f32,
     z: f32,
 }
 
-#[derive(Default)]
-pub struct Config {
+/// Config for the treebuilder
+pub struct TreeBuilderConfig {
     pub tile_width: f32,
     pub tile_height: f32,
     pub trunk_ratio: f32,
+    pub leaf_padding_perc: f32,
 }
 
+impl Default for TreeBuilderConfig {
+    fn default() -> Self {
+        TreeBuilderConfig {
+            tile_width: 1.0,
+            tile_height: 2.0,
+            trunk_ratio: 0.2,
+            leaf_padding_perc: 0.8
+        }
+    }
+}
+/// Tree-builder builder
 pub(crate) struct TreeBuilderBuilder {
-    config: Config,
+    config: TreeBuilderConfig,
+    /// number of different tree models
+    models: u32,
 }
 
+#[allow(dead_code)]
 impl TreeBuilderBuilder {
     pub fn new() -> Self {
         Self {
-            config: Config {
-                tile_width: 1.0,
-                tile_height: 2.0,
-                trunk_ratio: 0.2,
-            },
+            config: TreeBuilderConfig::default(),
+            models: 8,
         }
     }
 
-    pub fn with_config(mut self, config: Config) -> Self {
+    pub fn with_config(mut self, config: TreeBuilderConfig) -> Self {
         self.config = config;
+        self
+    }
+
+    pub fn with_models(mut self, models: u32) -> Self {
+        self.models = models;
         self
     }
 
@@ -38,20 +57,22 @@ impl TreeBuilderBuilder {
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
     ) -> TreeBuilder {
-        TreeBuilder::new(meshes, materials, self.config)
+        TreeBuilder::new(meshes, materials, self.config, self.models)
     }
 }
 
+/// Treebuilder which creates tree-entities
 pub(crate) struct TreeBuilder {
     tree_data: Vec<(PbrBundle, PbrBundle)>,
-    config: Config,
+    models: u32,
 }
 
 impl TreeBuilder {
     fn new(
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
-        config: Config,
+        config: TreeBuilderConfig,
+        models: u32,
     ) -> Self {
         let leafe_mat = materials.add(StandardMaterial {
             base_color: Color::hex("3bb526").unwrap(),
@@ -67,21 +88,22 @@ impl TreeBuilder {
             ..Default::default()
         });
 
-        let tree_data = (0..8)
+        let trunk_height = config.tile_height * config.trunk_ratio;
+        let leaf_width = config.tile_width * config.leaf_padding_perc;
+        let leaf_base = leaf_width;
+        let tree_data = (0..models)
             .map(|size| {
-                let trunk_height = config.tile_height * config.trunk_ratio;
-                let leafe_space = (config.tile_height - trunk_height) * (size as f32 / 8.0);
-
-                let treetop_center_y = trunk_height + (leafe_space / 2.0);
+                let leafe_space = leaf_base + 
+                    (config.tile_height - trunk_height - leaf_base) * (size as f32 / models as f32);
                 let leafes_mesh = meshes.add(Mesh::from(shape::Box::new(
-                    config.tile_width * 0.8,
+                    leaf_width,
                     leafe_space,
-                    config.tile_width * 0.8,
+                    leaf_width,
                 )));
                 let leafes = PbrBundle {
                     mesh: leafes_mesh,
                     material: leafe_mat.clone(),
-                    transform: Transform::from_xyz(0.0, treetop_center_y, 0.0),
+                    transform: Transform::from_xyz(0.0, trunk_height + (leafe_space / 2.0), 0.0),
                     ..Default::default()
                 };
                 let trunk_mesh = meshes.add(Mesh::from(shape::Box::new(
@@ -99,9 +121,16 @@ impl TreeBuilder {
             })
             .collect::<Vec<(PbrBundle, PbrBundle)>>();
 
-        Self { tree_data, config }
+        Self { tree_data, models }
     }
+
+    /// create a tree at given coordinates
+    ///# Arguments
+    /// * `size` - size of the tree that must be less then [`TreeBuilder::models`]
     pub fn build_tree_at(&self, x: f32, z: f32, size: f32, commands: &mut Commands) {
+        if size as u32 > self.models {
+            panic!("size of tree must be betwen 0 and <models> ")
+        }
         commands
             .spawn_bundle((
                 Tile { x, z },
