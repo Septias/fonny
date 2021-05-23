@@ -23,13 +23,13 @@ fn setup(
 ) {
     let tree_builder = TreeBuilderBuilder::new()
         .with_config(TreeBuilderConfig {
-            tile_height: 20.0,
+            tile_height: 10.0,
             ..Default::default()
         })
-        .with_models(20)
+        .with_levels(20)
         .build(&mut meshes, &mut materials);
     
-    let mapgen = map::generators::CycleGenerator::new(100, 100, 20);
+    let mapgen = map::generators::DonutGenerator::new(100, 100, 20, 15.0);
 
     for x in -50..50 {
         for z in -50..50 {

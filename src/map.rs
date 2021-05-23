@@ -29,8 +29,8 @@ impl Default for TreeBuilderConfig {
 /// Tree-builder builder
 pub(crate) struct TreeBuilderBuilder {
     config: TreeBuilderConfig,
-    /// number of different tree models
-    models: u32,
+    /// number of different tree levels
+    levels: u32,
 }
 
 #[allow(dead_code)]
@@ -38,7 +38,7 @@ impl TreeBuilderBuilder {
     pub fn new() -> Self {
         Self {
             config: TreeBuilderConfig::default(),
-            models: 8,
+            levels: 8,
         }
     }
 
@@ -47,8 +47,8 @@ impl TreeBuilderBuilder {
         self
     }
 
-    pub fn with_models(mut self, models: u32) -> Self {
-        self.models = models;
+    pub fn with_levels(mut self, levels: u32) -> Self {
+        self.levels = levels;
         self
     }
 
@@ -57,14 +57,14 @@ impl TreeBuilderBuilder {
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
     ) -> TreeBuilder {
-        TreeBuilder::new(meshes, materials, self.config, self.models)
+        TreeBuilder::new(meshes, materials, self.config, self.levels)
     }
 }
 
 /// Treebuilder which creates tree-entities
 pub(crate) struct TreeBuilder {
     tree_data: Vec<(PbrBundle, PbrBundle)>,
-    models: u32,
+    levels: u32,
 }
 
 impl TreeBuilder {
@@ -72,7 +72,7 @@ impl TreeBuilder {
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
         config: TreeBuilderConfig,
-        models: u32,
+        levels: u32,
     ) -> Self {
         let leafe_mat = materials.add(StandardMaterial {
             base_color: Color::hex("3bb526").unwrap(),
@@ -91,11 +91,11 @@ impl TreeBuilder {
         let trunk_height = 1.0;
         let leaf_width = config.tile_width * config.leaf_padding_perc;
         let leaf_base = leaf_width;
-        let tree_data = (0..models)
+        let tree_data = (0..=levels)
             .map(|size| {
                 let leafe_space = leaf_base
                     + (config.tile_height - trunk_height - leaf_base)
-                        * (size as f32 / models as f32);
+                        * (size as f32 / levels as f32);
                 let leafes_mesh = meshes.add(Mesh::from(shape::Box::new(
                     leaf_width,
                     leafe_space,
@@ -122,15 +122,15 @@ impl TreeBuilder {
             })
             .collect::<Vec<(PbrBundle, PbrBundle)>>();
 
-        Self { tree_data, models }
+        Self { tree_data, levels }
     }
 
     /// create a tree at given coordinates
     ///# Arguments
-    /// * `size` - size of the tree that must be less then [`TreeBuilder::models`]
+    /// * `size` - size of the tree that must be less then [`TreeBuilder::levels`]
     pub fn build_tree_at(&self, x: f32, z: f32, size: f32, commands: &mut Commands) {
-        if size as u32 > self.models {
-            panic!("size of tree must be betwen 0 and <models> ")
+        if size as u32 > self.levels {
+            panic!("size of tree must be betwen 0 and `[TreeBuilder::levels]`, is: {} ", size)
         }
         commands
             .spawn_bundle((
@@ -145,14 +145,16 @@ impl TreeBuilder {
     }
 }
 
+#[allow(dead_code)]
 pub mod generators {
-    pub struct CycleGenerator {
+    /// Generates a crate-like structure
+    pub struct CraterGenerator {
         width: i32,
         length: i32,
-        levels: i32
+        levels: i32,
     }
 
-    impl CycleGenerator {
+    impl CraterGenerator {
         pub fn compute(&self, x: i32, z: i32) -> f32 {
             let max = ((self.width.pow(2) + self.length.pow(2)) as f32).sqrt();
             let val = ((x.pow(2) + z.pow(2)) as f32).sqrt();
@@ -162,7 +164,31 @@ pub mod generators {
             Self {
                 width,
                 length,
-                levels            
+                levels,
+            }
+        }
+    }
+
+    /// Generates a donut-like structure
+    pub struct DonutGenerator {
+        width: i32,
+        length: i32,
+        levels: i32,
+        /// radius at which the donut has it's peak
+        radius: f32,
+    }
+
+    impl DonutGenerator {
+        pub fn compute(&self, x: i32, z: i32) -> f32 {
+            let val = ((x.pow(2) + z.pow(2)) as f32).sqrt();
+            self.levels as f32 / ((val - self.radius).abs() / 3.0).max(1.0)
+        }
+        pub fn new(width: i32, length: i32, levels: i32, radius: f32) -> Self {
+            Self {
+                width,
+                length,
+                levels,
+                radius,
             }
         }
     }
