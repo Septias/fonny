@@ -1,6 +1,6 @@
 use bevy::{pbr::AmbientLight, prelude::*};
 use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
-use map::{TreeBuilderConfig, TreeBuilderBuilder};
+use map::{TreeBuilderBuilder, TreeBuilderConfig};
 mod map;
 
 fn main() {
@@ -28,19 +28,14 @@ fn setup(
         })
         .with_levels(20)
         .build(&mut meshes, &mut materials);
-    
+
     let mapgen = map::generators::DonutGenerator::new(100, 100, 20, 15.0);
 
     for x in -50..50 {
         for z in -50..50 {
             if x % 2 == 0 && z % 2 == 0 {
-                let size = mapgen.compute(x , z);
-                tree_builder.build_tree_at(
-                    x as f32,
-                    z as f32,
-                    size,
-                    &mut commands,
-                );
+                let size = mapgen.compute(x, z);
+                tree_builder.build_tree_at(x as f32, z as f32, size, &mut commands);
             }
         }
     }
@@ -53,7 +48,7 @@ fn setup(
 
     commands.spawn_bundle(LightBundle {
         transform: Transform::from_xyz(0.0, 30.0, 0.0),
-        light: Light{
+        light: Light {
             intensity: 800.0,
             range: 120.0,
             ..Default::default()
@@ -61,4 +56,3 @@ fn setup(
         ..Default::default()
     });
 }
-

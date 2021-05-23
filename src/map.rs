@@ -130,7 +130,10 @@ impl TreeBuilder {
     /// * `size` - size of the tree that must be less then [`TreeBuilder::levels`]
     pub fn build_tree_at(&self, x: f32, z: f32, size: f32, commands: &mut Commands) {
         if size as u32 > self.levels {
-            panic!("size of tree must be betwen 0 and `[TreeBuilder::levels]`, is: {} ", size)
+            panic!(
+                "size of tree must be betwen 0 and `[TreeBuilder::levels]`, is: {} ",
+                size
+            )
         }
         commands
             .spawn_bundle((
@@ -150,12 +153,12 @@ pub mod generators {
     //! Map Generators
     /// Generates a crate-like structure
     pub struct CraterGenerator {
-         /// width of map
-         width: i32,
-         /// depth of map
-         depth: i32,
-         /// Number of tree-levels
-         levels: i32,
+        /// width of map
+        width: i32,
+        /// depth of map
+        depth: i32,
+        /// Number of tree-levels
+        levels: i32,
     }
 
     impl CraterGenerator {
