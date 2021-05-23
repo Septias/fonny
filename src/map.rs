@@ -147,23 +147,27 @@ impl TreeBuilder {
 
 #[allow(dead_code)]
 pub mod generators {
+    //! Map Generators
     /// Generates a crate-like structure
     pub struct CraterGenerator {
-        width: i32,
-        length: i32,
-        levels: i32,
+         /// width of map
+         width: i32,
+         /// depth of map
+         depth: i32,
+         /// Number of tree-levels
+         levels: i32,
     }
 
     impl CraterGenerator {
         pub fn compute(&self, x: i32, z: i32) -> f32 {
-            let max = ((self.width.pow(2) + self.length.pow(2)) as f32).sqrt();
+            let max = ((self.width.pow(2) + self.depth.pow(2)) as f32).sqrt();
             let val = ((x.pow(2) + z.pow(2)) as f32).sqrt();
             val / max * self.levels as f32
         }
-        pub fn new(width: i32, length: i32, levels: i32) -> Self {
+        pub fn new(width: i32, depth: i32, levels: i32) -> Self {
             Self {
                 width,
-                length,
+                depth,
                 levels,
             }
         }
@@ -171,8 +175,11 @@ pub mod generators {
 
     /// Generates a donut-like structure
     pub struct DonutGenerator {
+        /// width of map
         width: i32,
-        length: i32,
+        /// depth of map
+        depth: i32,
+        /// Number of tree-levels
         levels: i32,
         /// radius at which the donut has it's peak
         radius: f32,
@@ -183,10 +190,10 @@ pub mod generators {
             let val = ((x.pow(2) + z.pow(2)) as f32).sqrt();
             self.levels as f32 / ((val - self.radius).abs() / 3.0).max(1.0)
         }
-        pub fn new(width: i32, length: i32, levels: i32, radius: f32) -> Self {
+        pub fn new(width: i32, depth: i32, levels: i32, radius: f32) -> Self {
             Self {
                 width,
-                length,
+                depth,
                 levels,
                 radius,
             }
