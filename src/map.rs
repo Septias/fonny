@@ -152,9 +152,29 @@ pub mod trees{
         }
     }
 }
+
+
+pub trait Generator{
+    fn compute(&self, x: i32, z: i32) -> f32;
+}
+
+pub struct WorldBuilder<T: Generator>{
+    width: i32,
+    depth: i32,
+    generator_function: T
+}
+
+impl<T: Generator> WorldBuilder<T> {
+    pub fn new(width: i32, depth: i32, generator_function: T) -> Self { Self { width, depth, generator_function } }
+}
+
+
 #[allow(dead_code)]
 pub mod generators {
     //! Map Generators
+    use noise::NoiseFn;
+
+    use super::Generator;
     /// Generates a crate-like structure
     pub struct CraterGenerator {
         /// width of map
@@ -166,17 +186,19 @@ pub mod generators {
     }
 
     impl CraterGenerator {
-        pub fn compute(&self, x: i32, z: i32) -> f32 {
-            let max = ((self.width.pow(2) + self.depth.pow(2)) as f32).sqrt();
-            let val = ((x.pow(2) + z.pow(2)) as f32).sqrt();
-            val / max * self.levels as f32
-        }
         pub fn new(width: i32, depth: i32, levels: i32) -> Self {
             Self {
                 width,
                 depth,
                 levels,
             }
+        }
+    }
+    impl Generator for CraterGenerator {
+        fn compute(&self, x: i32, z: i32) -> f32 {
+            let max = ((self.width.pow(2) + self.depth.pow(2)) as f32).sqrt();
+            let val = ((x.pow(2) + z.pow(2)) as f32).sqrt();
+            val / max * self.levels as f32
         }
     }
 
@@ -231,5 +253,9 @@ pub mod generators {
                 radius,
             }
         }
+    }
+
+    pub struct NoiseGenerator<T: NoiseFn<[f64; 2]>>{
+        function: T
     }
 }
