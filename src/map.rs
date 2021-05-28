@@ -1,6 +1,7 @@
 //! Everything related to map generation
+use bevy::prelude::*;
 
-
+use crate::map::trees::TreeBuilderBuilder;
 /// A tile in the grid of tiles
 #[derive(Debug, Default)]
 struct Tile {
@@ -8,7 +9,7 @@ struct Tile {
     z: f32,
 }
 
-pub mod trees{
+pub mod trees {
     use bevy::prelude::*;
 
     use super::Tile;
@@ -108,7 +109,11 @@ pub mod trees{
                     let leafes = PbrBundle {
                         mesh: leafes_mesh,
                         material: leafe_mat.clone(),
-                        transform: Transform::from_xyz(0.0, trunk_height + (leafe_space / 2.0), 0.0),
+                        transform: Transform::from_xyz(
+                            0.0,
+                            trunk_height + (leafe_space / 2.0),
+                            0.0,
+                        ),
                         ..Default::default()
                     };
                     let trunk_mesh = meshes.add(Mesh::from(shape::Box::new(
@@ -153,21 +158,54 @@ pub mod trees{
     }
 }
 
-
-pub trait Generator{
+pub trait Generator {
     fn compute(&self, x: i32, z: i32) -> f32;
 }
 
-pub struct WorldBuilder<T: Generator>{
+pub struct WorldBuilder<T: Generator> {
     width: i32,
     depth: i32,
-    generator_function: T
+    generator_function: T,
+    levels: u32,
 }
 
 impl<T: Generator> WorldBuilder<T> {
-    pub fn new(width: i32, depth: i32, generator_function: T) -> Self { Self { width, depth, generator_function } }
-}
+    pub fn new(width: i32, depth: i32, generator_function: T, levels: u32) -> Self {
+        Self {
+            width,
+            depth,
+            generator_function,
+            levels,
+        }
+    }
+    pub fn build(
+        self,
+        mut commands: &mut Commands,
+        mut meshes: &mut ResMut<Assets<Mesh>>,
+        mut materials: &mut ResMut<Assets<StandardMaterial>>,
+    ) {
+        let tree_builder = TreeBuilderBuilder::new()
+            .with_config(trees::Config {
+                tile_height: 10.0,
+                ..Default::default()
+            })
+            .with_levels(self.levels)
+            .build(&mut meshes, &mut materials);
 
+        let half_width = self.width / 2;
+        let half_depth = self.depth / 2;
+        for x in -half_width..half_width {
+            for z in -half_depth..half_depth {
+                if x % 2 == 0 && z % 2 == 0 {
+                    let size = self.generator_function.compute(x, z) * self.levels as f32;
+                    if size > 2.0 {
+                        tree_builder.build_tree_at(x as f32, z as f32, size as f32, &mut commands);
+                    }
+                }
+            }
+        }
+    }
+}
 
 #[allow(dead_code)]
 pub mod generators {
@@ -198,7 +236,7 @@ pub mod generators {
         fn compute(&self, x: i32, z: i32) -> f32 {
             let max = ((self.width.pow(2) + self.depth.pow(2)) as f32).sqrt();
             let val = ((x.pow(2) + z.pow(2)) as f32).sqrt();
-            val / max * self.levels as f32
+            val / max
         }
     }
 
@@ -213,11 +251,11 @@ pub mod generators {
         /// TODO
         frequency: f32,
     }
-    
+
     impl WaveGenerator {
         pub fn compute(&self, x: i32, z: i32) -> f32 {
             let dist_to_center = ((x.pow(2) + z.pow(2)) as f32).sqrt();
-            self.levels as f32 * (dist_to_center * self.frequency).sin() 
+            (dist_to_center * self.frequency).sin()
         }
         pub fn new(width: i32, depth: i32, levels: i32, frequency: f32) -> Self {
             Self {
@@ -234,28 +272,44 @@ pub mod generators {
         width: i32,
         /// depth of map
         depth: i32,
-        /// Number of tree-levels
-        levels: i32,
         /// radius at which the donut has it's peak
         radius: f32,
     }
-    
+
     impl DonutGenerator {
         pub fn compute(&self, x: i32, z: i32) -> f32 {
             let val = ((x.pow(2) + z.pow(2)) as f32).sqrt();
-            self.levels as f32 / ((val - self.radius).abs() / 3.0).max(1.0)
+            1.0 / ((val - self.radius).abs() / 3.0).max(1.0)
         }
-        pub fn new(width: i32, depth: i32, levels: i32, radius: f32) -> Self {
+        pub fn new(width: i32, depth: i32, radius: f32) -> Self {
             Self {
                 width,
                 depth,
-                levels,
                 radius,
             }
         }
     }
 
-    pub struct NoiseGenerator<T: NoiseFn<[f64; 2]>>{
-        function: T
+    pub struct NoiseGenerator<T>
+    where
+        T: NoiseFn<[f64; 2]>,
+    {
+        function: T,
+    }
+
+    impl<T> Generator for NoiseGenerator<T>
+    where
+        T: NoiseFn<[f64; 2]>,
+    {
+        fn compute(&self, x: i32, z: i32) -> f32 {
+            self.function
+                .get([(x + 50) as f64 / 20.1, (z + 50) as f64 / 20.1]) as f32
+        }
+    }
+
+    impl<T: NoiseFn<[f64; 2]>> NoiseGenerator<T> {
+        pub fn new(function: T) -> Self {
+            Self { function }
+        }
     }
 }
