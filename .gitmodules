@@ -1,3 +1,6 @@
 [submodule "deps/bevy"]
 	path = deps/bevy
 	url = https://github.com/bevyengine/bevy.git
+[submodule "deps/bevy_fly_camera"]
+	path = deps/bevy_fly_camera
+	url = https://github.com/mcpar-land/bevy_fly_camera.git
