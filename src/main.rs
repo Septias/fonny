@@ -1,7 +1,7 @@
 use bevy::{pbr::AmbientLight, prelude::*};
 use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
 use map::{trees::generators::NoiseGenerator, WorldBuilder};
-use noise::{NoiseFn, Perlin, Seedable};
+use noise::{Perlin, Seedable};
 mod map;
 
 fn main() {
