@@ -8,7 +8,12 @@ edition = "2018"
 [dependencies]
 bevy = {path="deps/bevy"}
 bevy_fly_camera = {path="deps/bevy_fly_camera"}
+bevy-inspector-egui = "0.5.1"
 noise = "0.7.0"
+
+[patch.crates-io]
+bevy = {path = "deps/bevy"}
+
 
 [profile.dev.package."*"]
 opt-level = 3
